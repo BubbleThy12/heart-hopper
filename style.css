@@ -1,0 +1,23 @@
+/* Center the game */
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #87CEEB;
+}
+
+/* Canvas Styling */
+canvas {
+    border: 2px solid black;
+    background-color: #cce7ff;
+}
+
+#pauseButton,
+#resetHighScore {
+  position: absolute;
+  padding: 5px 10px;
+  z-index: 10;
+}
+  
