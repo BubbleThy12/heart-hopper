@@ -286,19 +286,12 @@ function tryJump() {
 canvas.addEventListener("touchstart", function (e) {
     e.preventDefault(); // Stop browser from scrolling
 
-    // ✅ Start game if it hasn't started yet
     if (!gameStarted) {
         startGame();
         return;
     }
 
-    // ✅ Jump / double jump if game is running
-    if (player.onGround || player.jumpCount < player.maxJumps) {
-        player.velocityY = -player.jumpStrength;
-        player.jumpCount++;
-    }
-
-    tryJump();
+    tryJump(); // Use the same jump logic as desktop
 }, { passive: false });
 
 
