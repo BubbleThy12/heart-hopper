@@ -10,6 +10,7 @@ const coinSound = new Audio("sounds/coin.mp3");
 coinSound.volume = 0.2; // Optional
 
 
+
 let musicMuted = false;
 
 document.getElementById("musicToggle").addEventListener("click", () => {
@@ -32,6 +33,8 @@ document.addEventListener("visibilitychange", () => {
 
 
 
+
+
 titleImage.onload = () => {
     drawTitleScreen(); // ✅ draw ONLY after image is loaded
 };
@@ -39,18 +42,18 @@ titleImage.onload = () => {
 
 
 function drawTitleScreen() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (gameStarted) return; // ⛔ Stop drawing title once game starts
 
     ctx.drawImage(titleImage, 0, 0, canvas.width, canvas.height);
 
-    // Move clouds
+    // Move clouds...
     clouds.forEach(cloud => {
         cloud.x -= 0.2;
         if (cloud.x < -100) {
             cloud.x = canvas.width + Math.random() * 100;
             cloud.y = Math.random() * 100;
         }
-        ctx.drawImage(cloud.img, cloud.x, cloud.y, cloud.width, cloud.height);  
+        ctx.drawImage(cloud.img, cloud.x, cloud.y, cloud.width, cloud.height);
     });
 
     requestAnimationFrame(drawTitleScreen);
@@ -239,6 +242,17 @@ player.frameTimer = 0;
 player.frameInterval = 8;
 player.facing = "right";
 
+player.canJump = function () {
+    return this.jumpCount < this.maxJumps;
+};
+
+player.jump = function () {
+    this.speedY = this.jumpPower;
+    this.isJumping = true;
+    this.jumpCount++;
+};
+
+
 // === Platforms ===
 const platforms = [];
 let lastPlatformX = 0;
@@ -255,27 +269,41 @@ document.addEventListener("keydown", (event) => {
         musicStarted = true;
     }
 
-    if (event.code === "ArrowRight") {
-        player.speedX = player.moveSpeed;
-        player.facing = "right";
+    if (event.code === "Space" || event.code === "ArrowUp") {
+        tryJump();
     }
-    if (event.code === "ArrowLeft") {
-        player.speedX = -player.moveSpeed;
-        player.facing = "left";
+
+});
+
+function tryJump() {
+  if (player.canJump()) {
+    player.jump();
+  }
+}
+
+
+
+canvas.addEventListener("touchstart", function (e) {
+    e.preventDefault(); // Stop browser from scrolling
+
+    // ✅ Start game if it hasn't started yet
+    if (!gameStarted) {
+        startGame();
+        return;
     }
-    if (event.code === "Space" && player.jumpCount < player.maxJumps) {
-        player.speedY = player.jumpPower;
-        player.isJumping = true;
+
+    // ✅ Jump / double jump if game is running
+    if (player.onGround || player.jumpCount < player.maxJumps) {
+        player.velocityY = -player.jumpStrength;
         player.jumpCount++;
     }
-});
+
+    tryJump();
+}, { passive: false });
 
 
-document.addEventListener("keyup", (event) => {
-    if (event.code === "ArrowRight" || event.code === "ArrowLeft") {
-        player.speedX = 0;
-    }
-});
+
+
 
 // === Cloud Class ===
 class Cloud {
@@ -294,6 +322,8 @@ class Cloud {
         ctx.fill();
     }
 }
+
+
 
 
 class Projectile {
@@ -427,6 +457,7 @@ function updateGame() {
     if (player.speedY > maxFallSpeed) player.speedY = maxFallSpeed;
 
     player.y += player.speedY;
+    player.speedX = player.moveSpeed; // Always move right
     player.x += player.speedX;
     player.speedY += player.gravity;
 
@@ -631,13 +662,15 @@ function resetGame() {
 
     isGameOver = true; // ✅ Set game over flag early
 
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
     if (!musicMuted) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-    }   
+        bgMusic.play().catch(e => console.warn("Autoplay error:", e));
+    }
+   
 
     // Reset music flag so it can start again on player movement
-    musicStarted = false;
+    musicStarted = true;
 
     // Reset game state flags
     isGameOver = false;
@@ -695,12 +728,14 @@ function resetGame() {
 
 
 function startGame() {
-    bgMusic.play().catch((e) => {
-        console.warn("Autoplay prevented:", e);
-    });    
+    if (!musicMuted) {
+        bgMusic.play().catch(e => console.warn("Autoplay error:", e));
+    }
+    musicStarted = true;
+
     gameStarted = true;
-    resetGame();          // Start game state
-    drawGame();           // Begin rendering loop
+    resetGame();
+    drawGame();
 }
 
 
